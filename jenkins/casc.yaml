@@ -1,0 +1,73 @@
+jenkins:
+  systemMessage: "Netology CI/CD lab: Jenkins, Docker, Go and Nexus"
+  numExecutors: 2
+  mode: NORMAL
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "${JENKINS_ADMIN_ID}"
+          password: "${JENKINS_ADMIN_PASSWORD}"
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - usernamePassword:
+              scope: GLOBAL
+              id: nexus-admin
+              username: admin
+              password: "${NEXUS_ADMIN_PASSWORD}"
+              description: "Local lab Nexus account"
+
+unclassified:
+  location:
+    url: http://localhost:8088/
+
+jobs:
+  - script: >
+      freestyleJob('sdvps-freestyle') {
+        description('Freestyle: go test and docker build for the Netology sample')
+        scm {
+          git {
+            remote { url('https://github.com/pavel-logachev/cicd-jenkins-nexus-lab.git') }
+            branch('*/main')
+          }
+        }
+        triggers { scm('H/15 * * * *') }
+        steps {
+          shell('go test .\\ndocker build -t sdvps-materials:${BUILD_NUMBER} .')
+        }
+      }
+      pipelineJob('sdvps-declarative') {
+        description('Declarative Pipeline: test and build a Docker image')
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote { url('https://github.com/pavel-logachev/cicd-jenkins-nexus-lab.git') }
+                branch('*/main')
+              }
+            }
+            scriptPath('Jenkinsfile')
+          }
+        }
+      }
+      pipelineJob('sdvps-nexus-upload') {
+        description('Build a versioned Go binary and upload it to Nexus raw-hosted')
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote { url('https://github.com/pavel-logachev/cicd-jenkins-nexus-lab.git') }
+                branch('*/main')
+              }
+            }
+            scriptPath('Jenkinsfile.nexus')
+          }
+        }
+      }
+

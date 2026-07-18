@@ -1,0 +1,44 @@
+pipeline {
+  agent any
+
+  environment {
+    NEXUS_URL = 'http://nexus:8081'
+    NEXUS_REPOSITORY = 'sdvps-releases'
+  }
+
+  stages {
+    stage('Test') {
+      steps {
+        sh 'go test .'
+      }
+    }
+    stage('Build binary') {
+      steps {
+        sh 'CGO_ENABLED=0 GOOS=linux go build -o sdvps-materials-${BUILD_NUMBER} .'
+      }
+    }
+    stage('Upload to Nexus') {
+      steps {
+        withCredentials([usernamePassword(
+          credentialsId: 'nexus-admin',
+          usernameVariable: 'NEXUS_USER',
+          passwordVariable: 'NEXUS_PASSWORD'
+        )]) {
+          sh '''
+            curl --fail --silent --show-error \
+              --user "$NEXUS_USER:$NEXUS_PASSWORD" \
+              --upload-file "sdvps-materials-${BUILD_NUMBER}" \
+              "$NEXUS_URL/repository/$NEXUS_REPOSITORY/sdvps-materials/${BUILD_NUMBER}/sdvps-materials-${BUILD_NUMBER}"
+          '''
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      archiveArtifacts artifacts: 'sdvps-materials-*', allowEmptyArchive: true
+    }
+  }
+}
+
