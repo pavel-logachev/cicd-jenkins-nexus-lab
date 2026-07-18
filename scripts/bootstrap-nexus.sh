@@ -26,6 +26,23 @@ else
   current_password="${target_password}"
 fi
 
+# Nexus Repository 3.82+ blocks component uploads until the Community Edition
+# EULA is accepted. The API requires the exact disclaimer returned by GET.
+curl --fail --silent --show-error \
+  --user "admin:${current_password}" \
+  "${nexus_url}/service/rest/v1/system/eula" \
+  --output /tmp/nexus-eula.json
+if grep -q '"accepted" : false' /tmp/nexus-eula.json; then
+  sed 's/"accepted" : false/"accepted" : true/' \
+    /tmp/nexus-eula.json > /tmp/nexus-eula-accepted.json
+  curl --fail --silent --show-error \
+    --user "admin:${current_password}" \
+    --header 'Content-Type: application/json' \
+    --data-binary @/tmp/nexus-eula-accepted.json \
+    "${nexus_url}/service/rest/v1/system/eula"
+  echo "Nexus Community Edition EULA accepted"
+fi
+
 if curl --fail --silent --user "admin:${current_password}" \
   "${nexus_url}/service/rest/v1/repositories/raw/hosted/sdvps-releases" >/dev/null 2>&1; then
   echo "Repository sdvps-releases already exists"
