@@ -29,7 +29,7 @@ unclassified:
 
 jobs:
   - script: >
-      freestyleJob('sdvps-freestyle') {
+      freeStyleJob('sdvps-freestyle') {
         description('Freestyle: go test and docker build for the Netology sample')
         scm {
           git {
@@ -39,7 +39,7 @@ jobs:
         }
         triggers { scm('H/15 * * * *') }
         steps {
-          shell('go test .\\ndocker build -t sdvps-materials:${BUILD_NUMBER} .')
+          shell('go test .\\ndocker build -t sdvps-materials:$BUILD_NUMBER .')
         }
       }
       pipelineJob('sdvps-declarative') {
@@ -70,4 +70,3 @@ jobs:
           }
         }
       }
-

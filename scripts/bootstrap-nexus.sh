@@ -18,6 +18,7 @@ else
   done
   current_password="$(cat /nexus-data/admin.password)"
   curl --fail --silent --show-error \
+    --request PUT \
     --user "admin:${current_password}" \
     --header 'Content-Type: text/plain' \
     --data "${target_password}" \
@@ -49,4 +50,3 @@ curl --fail --silent --show-error \
   "${nexus_url}/service/rest/v1/repositories/raw/hosted"
 
 echo "Repository sdvps-releases created"
-
